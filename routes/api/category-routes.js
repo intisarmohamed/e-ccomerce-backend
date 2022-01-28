@@ -2,73 +2,67 @@ const { Router } = require("express");
 
 const { Category, Product } = require("../../models");
 
-// The `/api/categories` endpoint
-
 const router = Router();
-
+//get all categories
 router.get("/", async (req, res) => {
-  // find all categories
-  // be sure to include its associated Products
   try {
-    const getCategories = await Category.findAll();
-    res.status(200).json(getCategories);
+    const getAllCategories = await Category.findAll();
+    res.status(200).json(getAllCategories);
   } catch (err) {
     res.status(500).json(err);
   }
 });
-
+// get a category by id
 router.get("/:id", async (req, res) => {
-  // find one category by its `id` value
-  // be sure to include its associated Products
   try {
-    const getCategory = await Category.findByPk(req.params.id, {
-      // JOIN with locations, using the Trip through table
-      include: [{ model: Product, as: "Product_Categories" }],
+    const getCategoryById = await Category.findByPk(req.params.id, {
+      include: [
+        {
+          model: Product,
+          attributes: ["id", "product_name", "price", "stock", "category_id"],
+        },
+      ],
     });
 
-    if (!getCategory) {
-      res.status(404).json({ message: "No products found in this category" });
+    if (!getCategoryById) {
+      res.status(404).json({ message: "No category with this id" });
       return;
     }
 
-    res.status(200).json(getCategory);
+    res.status(200).json(getCategoryById);
   } catch (err) {
     res.status(500).json(err);
   }
 });
-
+// create a new category
 router.post("/", async (req, res) => {
-  // create a new category
   try {
-    const createCategory = await Category.create(req.body);
-    res.status(200).json(createCategory);
+    const newCategory = await Category.create(req.body);
+    res.status(200).json(newCategory);
   } catch (err) {
     res.status(400).json(err);
   }
 });
 
-router.put("/:id", (req, res) => {
-  // update a category by its `id` value
-});
-
+// delete a category by id
 router.delete("/:id", async (req, res) => {
-  // delete a category by its `id` value
   try {
-    const deleteCategory = await Category.destroy({
+    const deleteCategory = await Category.findByPk(req.params.id);
+
+    if (!deleteCategory) {
+      return res.status(404).json({ message: "No category found" });
+    }
+
+    await Category.destroy({
       where: {
         id: req.params.id,
       },
     });
 
-    if (!deleteCategory) {
-      res.status(404).json({ message: "No category found with this id!" });
-      return;
-    }
-
-    res.status(200).json(deleteCategory);
-  } catch (err) {
-    res.status(500).json(err);
+    return res.json({ message: "Successfully deleted category" });
+  } catch (error) {
+    console.error(`[ERROR]: Failed to delete category | ${error.message}`);
+    return res.status(500).json({ error: "Failed to delete category" });
   }
 });
-
 module.exports = router;
